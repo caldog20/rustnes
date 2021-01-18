@@ -1,8 +1,9 @@
+#![allow(dead_code)]
 pub mod cpu;
 #[macro_use]
 extern crate bitflags;
-use crate::cpu::*;
+
+// use crate::cpu::*;
 
 fn main() {
-    testcpu();
 }
