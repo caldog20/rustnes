@@ -1,0 +1,21 @@
+Nesdev Wiki - http://wiki.nesdev.com/w/index.php/Nesdev_Wiki
+NES Documentation - http://nesdev.com/NESDoc.pdf
+NANN - https://nerdy-nights.nes.science/
+IAmError - https://www.goodreads.com/book/show/23461364-i-am-error
+ElemsComSystems - https://www.goodreads.com/book/show/910789.The_Elements_of_Computing_Systems
+
+
+CPU - MOS 8-Bit 6502 - Little Endian
+PPU - Graphics Calc and draw
+ - Both have internal memory
+Memory-mapped IO to allow CPU to communicate with components
+ - I.E. memory writes to specific location to transfer data
+16-bit bus - 64Kb memory
+- $0000-$FFFF
+- Registers
+-- PC - 16bit
+-- SP - 8bit - $0100-$01FF wraps from 00 to FF
+-- Status Register - 8Bit
+--Accumulator - 8bit register
+--Index Register X and Y - 8-bit each
+
