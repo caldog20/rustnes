@@ -42,25 +42,39 @@ pub struct CPU {
     pub bus: BUS,
 }
 pub trait MEM {
+    fn read_mem(&self, addr: u16) -> u8;
+    fn write_mem(&mut self, addr: u16, data: u8);
 
 
 }
 impl MEM for CPU {
-
+    fn read_mem(&self, addr:u16) -> u8 {
+        self.bus.read_mem(addr)
+    }
+    fn write_mem(&mut self, addr: u16, data: u8) {
+        self.bus.write_mem(addr, data)
+    }
 }
 
 impl CPU {
-    pub fn new(bus: BUS) -> Self {
+    pub fn new() -> Self {
         CPU {
             pc: 0,
             sp: 0,
             acc: 0,
-            status: Flags::U,
+            status: Flags::from_bits_truncate(0b100100),
             ix: 0,
             iy: 0,
-            bus: bus,        }
+            bus: BUS::new(),   
+        }
     }
-
+    pub fn load_rom(&mut self, program: Vec<u8>) {
+        // for i in 0..program.len() {
+        //     self.bus.prg_mem[0x0000 + i] = program[i];
+        // }
+        self.bus.prg_mem[0x0000 .. (0x0000 + program.len())].copy_from_slice(&program[..]);
+        self.pc = 0x8000;
+    }
 
     pub fn zero_carry_flags(&mut self, result: u8) {
         if result == 0 {
@@ -75,10 +89,10 @@ impl CPU {
         }
     }
 
-    pub fn decode(&mut self, program: Vec<u8>) {
-        self.pc = 0;
+    pub fn decode(&mut self) {
+        // self.pc = 0;
         loop {
-            let opcode = program[self.pc as usize];
+            let opcode = self.read_mem(self.pc);
             self.pc += 1;
             print!("OPCODE: {:#04X}\n", opcode);
 
@@ -89,13 +103,13 @@ impl CPU {
                     return;
                 }
                 0xA9 => {
-                    let param = program[self.pc as usize];
+                    let param = self.read_mem(self.pc);
                     lda(self, param);
                 }
                 0xAA => {
                     tax(self);
                 }
-                _ => print!("NO OPCODE")
+                _ => panic!("NO OPCODE")
             }
         }
     }
@@ -106,34 +120,46 @@ mod test {
     use super::*;
     #[test]
     fn test_lda_a9() {
-        let bus = BUS::new();
-        let mut cpu = CPU::new(bus);
-        cpu.decode(vec![0xa9, 0x05, 0x01]);
+        // let bus = BUS::new();
+        let mut cpu = CPU::new();
+        cpu.load_rom(vec![0xa9, 0x05, 0x01]);
+        cpu.decode();
         assert_eq!(cpu.acc, 0x05);
         assert!(cpu.status & Flags::Z == Flags::U);
         assert!(cpu.status & Flags::N == Flags::U);
     }
     #[test]
     fn test_lda_a9_zero() {
-        let bus = BUS::new();
-        let mut cpu = CPU::new(bus);
-        cpu.decode(vec![0xa9, 0x00, 0x01]);
+        // let bus = BUS::new();
+        let mut cpu = CPU::new();
+        cpu.load_rom(vec![0xa9, 0x00, 0x01]);
+        cpu.decode();
         assert!(cpu.status & Flags::Z == Flags::Z);
 
     }
     #[test]
     fn test_lda_a9_neg() {
-        let bus = BUS::new();
-        let mut cpu = CPU::new(bus);
-        cpu.decode(vec![0xa9, 0xF0, 0x01]);
+        // let bus = BUS::new();
+        let mut cpu = CPU::new();
+        cpu.load_rom(vec![0xa9, 0xF0, 0x01]);
+        cpu.decode();
         assert!(cpu.status & Flags::N == Flags::N);
     }
     #[test]
     fn test_tax() {
-        let bus = BUS::new();
-        let mut cpu = CPU::new(bus);
-        cpu.decode(vec![0xa9, 0x05, 0xaa, 0x00, 0x01]);
+        // let bus = BUS::new();
+        let mut cpu = CPU::new();
+        cpu.load_rom(vec![0xa9, 0x05, 0xaa, 0x00, 0x01]);
+        cpu.decode();
         assert_eq!(cpu.ix, cpu.acc);
         print!("TAX: {:#04X} {:#04X}\n", cpu.ix, cpu.acc);
+    }
+    #[test]
+    fn test_load_prg() {
+        let mut cpu = CPU::new();
+        let testrom = vec![0xa9, 0x05, 0xaa, 0x00, 0x01];
+        cpu.load_rom(testrom);
+        cpu.decode();
+
     }
 }
