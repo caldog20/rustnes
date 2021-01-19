@@ -19,7 +19,16 @@ bitflags! {
 
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
-
+#[allow(non_snake_case)]
+pub struct Registers {
+    pub pc: u16,
+    pub sp: u8,
+    pub a: u8,
+    pub x: u8,
+    pub y: u8, 
+}
+#[derive(Debug)]
+#[allow(non_camel_case_types)]
 pub enum Modes {
    Immediate,
    ZeroPage,
@@ -33,15 +42,23 @@ pub enum Modes {
    NoneAddressing,
 }
 
+// pub struct CPU {
+//     pub pc: u16,
+//     pub sp: u8,
+//     pub acc: u8,
+//     pub status: Flags,
+//     pub ix: u8,
+//     pub iy: u8,
+//     pub bus: BUS,
+// }
+
 pub struct CPU {
-    pub pc: u16,
-    pub sp: u8,
-    pub acc: u8,
+    pub registers: Registers,
     pub status: Flags,
-    pub ix: u8,
-    pub iy: u8,
     pub bus: BUS,
 }
+
+
 pub trait MEM {
     fn read_mem(&self, addr: u16) -> u8;
     
@@ -74,15 +91,23 @@ impl MEM for CPU {
     }
 }
 
+impl Registers {
+    pub fn init() -> Self {
+        Registers {
+            pc: 0,
+            sp: 0,
+            a: 0,
+            x: 0,
+            y: 0,
+        }
+    }
+}
+
 impl CPU {
     pub fn new() -> Self {
         CPU {
-            pc: 0,
-            sp: 0,
-            acc: 0,
+            registers: Registers::init(),
             status: Flags::from_bits_truncate(0b100100),
-            ix: 0,
-            iy: 0,
             bus: BUS::new(),
         }
     }
@@ -91,10 +116,10 @@ impl CPU {
         //     self.bus.prg_mem[0x0000 + i] = program[i];
         // }
         self.bus.prg_mem[0x0000 .. (0x0000 + program.len())].copy_from_slice(&program[..]);
-        self.pc = 0x8000;
+        self.registers.a = 0x8000;
     }
 
-    pub fn zero_carry_flags(&mut self, result: u8) {
+    pub fn zero_neg_flags(&mut self, result: u8) {
         if result == 0 {
             self.status.insert(Flags::Z);
         } else {
@@ -110,8 +135,8 @@ impl CPU {
     pub fn decode(&mut self) {
         // self.pc = 0;
         loop {
-            let opcode = self.read_mem(self.pc);
-            self.pc += 1;
+            let opcode = self.read_mem(self.registers.pc);
+            self.registers.pc += 1;
             print!("OPCODE: {:#04X}\n", opcode);
 
             match opcode {
@@ -121,7 +146,7 @@ impl CPU {
                     return;
                 }
                 0xA9 => {
-                    let param = self.read_mem(self.pc);
+                    let param = self.read_mem(self.registers.pc);
                     lda(self, param);
                 }
                 0xAA => {
@@ -142,7 +167,7 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_rom(vec![0xa9, 0x05, 0x01]);
         cpu.decode();
-        assert_eq!(cpu.acc, 0x05);
+        assert_eq!(cpu.registers.a, 0x05);
         assert!(cpu.status & Flags::Z == Flags::U);
         assert!(cpu.status & Flags::N == Flags::U);
     }
@@ -169,8 +194,8 @@ mod test {
         let mut cpu = CPU::new();
         cpu.load_rom(vec![0xa9, 0x05, 0xaa, 0x00, 0x01]);
         cpu.decode();
-        assert_eq!(cpu.ix, cpu.acc);
-        print!("TAX: {:#04X} {:#04X}\n", cpu.ix, cpu.acc);
+        assert_eq!(cpu.registers.x, cpu.registers.a);
+        print!("TAX: {:#04X} {:#04X}\n", cpu.registers.x, cpu.registers.a);
     }
     #[test]
     fn test_load_prg() {
