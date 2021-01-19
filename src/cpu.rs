@@ -116,7 +116,7 @@ impl CPU {
         //     self.bus.prg_mem[0x0000 + i] = program[i];
         // }
         self.bus.prg_mem[0x0000 .. (0x0000 + program.len())].copy_from_slice(&program[..]);
-        self.registers.a = 0x8000;
+        self.registers.pc = 0x8000;
     }
 
     pub fn zero_neg_flags(&mut self, result: u8) {
