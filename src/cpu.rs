@@ -19,6 +19,7 @@ bitflags! {
 
 #[derive(Debug)]
 #[allow(non_camel_case_types)]
+
 pub enum Modes {
    Immediate,
    ZeroPage,
@@ -43,9 +44,20 @@ pub struct CPU {
 }
 pub trait MEM {
     fn read_mem(&self, addr: u16) -> u8;
+    
     fn write_mem(&mut self, addr: u16, data: u8);
-
-
+    
+    fn read_mem_u16(&self, addr: u16) -> u16 {
+        let lo = self.read_mem(addr) as u16;
+        let hi = self.read_mem(addr + 1 ) as u16;
+        (hi << 8) | (lo as u16)
+    }
+    fn write_mem_u16(&mut self, addr: u16, data: u16) {
+        let lo = (data & 0xFF) as u8;
+        let hi = (data >> 8) as u8;
+        self.write_mem(addr, lo);
+        self.write_mem(addr + 1, hi);
+    }
 }
 impl MEM for CPU {
     fn read_mem(&self, addr:u16) -> u8 {
@@ -53,6 +65,12 @@ impl MEM for CPU {
     }
     fn write_mem(&mut self, addr: u16, data: u8) {
         self.bus.write_mem(addr, data)
+    }
+    fn read_mem_u16(&self, addr: u16) -> u16 {
+        self.bus.read_mem_u16(addr)
+    }
+    fn write_mem_u16(&mut self, addr: u16, data: u16) {
+        self.bus.write_mem_u16(addr, data)
     }
 }
 
@@ -65,7 +83,7 @@ impl CPU {
             status: Flags::from_bits_truncate(0b100100),
             ix: 0,
             iy: 0,
-            bus: BUS::new(),   
+            bus: BUS::new(),
         }
     }
     pub fn load_rom(&mut self, program: Vec<u8>) {
