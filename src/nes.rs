@@ -1,13 +1,15 @@
 #![allow(dead_code)]
-use crate::bus::*;
 use crate::cpu::*;
 
 pub struct NES {
-    cpu: CPU,
-    bus: BUS,
+    pub cpu: CPU,
 }
 
 impl NES {
-    cpu: CPU::new(),
-    bus: bus::new()
+    pub fn new() -> Self {
+        NES { 
+            cpu: CPU::new(),
+        }
+    }
 }
+
