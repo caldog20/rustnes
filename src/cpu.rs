@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 use crate::instructions::*;
 use crate::bus::BUS;
+use crate::opcodes::OPCODES;
 
 // const STACK: u16 = 0x0100;
 // const STACK_RESET: u8 = 0xFD;
@@ -39,6 +40,8 @@ pub enum InterruptType {
     BRK,
 }
 
+
+#[derive(Debug)]
 #[allow(non_camel_case_types)]
 #[allow(non_snake_case)]
 pub enum Modes {
@@ -156,9 +159,9 @@ impl CPU {
             let opcode = self.read_mem(self.registers.pc);
             self.registers.pc += 1;
             print!("OPCODE: {:#04X}\n", opcode);
-
+            let mode = OPCODES.get(&opcode).unwrap();
             match opcode {
-                // 0x00 => return,
+                0x00 => return,
                 0x01 => {
                     print!("Terminated");
                     return;
@@ -169,6 +172,9 @@ impl CPU {
                 }
                 0xAA => {
                     tax(self);
+                }
+                0xC4 => {
+                    println!("the mode for C4 is {:?}", &mode)
                 }
                 _ => panic!("NO OPCODE")
             }
@@ -228,7 +234,14 @@ mod test {
         for i in 0..0xa {
             println!("{:#04X}", cpu.bus.cpu_mem[0x600 + i as usize]);
         }
-
-
+    }
+    
+    #[test]
+    fn test_hashmap() {
+        let mut cpu = CPU::new();
+        let testrom = vec![0xc4, 0x00, 0x01];
+        cpu.load_rom(testrom);
+        cpu.reset();
+        cpu.decode();
     }
 }
