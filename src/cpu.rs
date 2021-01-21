@@ -198,6 +198,13 @@ impl CPU {
             self.status.remove(Flags::N)
         }
     }
+    
+    pub fn update_carry_flag(&mut self, set: bool) {
+        match set {
+            true => self.status.remove(Flags::C),
+            false => self.status.insert(Flags::C)
+        }
+    }
 
     pub fn decode(&mut self) {
         // self.pc = 0;
