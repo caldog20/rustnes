@@ -138,7 +138,53 @@ impl CPU {
         self.decode();
     }
 
-    pub fn get_mode(&mut self, ) {}
+    pub fn addr_from_mode(self, mode: &Modes) -> u16 {
+        match mode {
+            Modes::Immediate => self.registers.pc,
+            _ => self.get_address(mode, self.registers.pc)
+        }
+    }
+
+    pub fn get_address(&self, mode: &Modes, addr: u16) -> u16 {
+        match mode {
+            Modes::Absolute => self.read_mem_u16(addr),
+
+            Modes::AbsoluteX => {
+                let operand = self.read_mem_u16(addr);
+                return operand.wrapping_add(self.registers.x as u16)
+            }
+            Modes::AbsoluteY => {
+                let operand = self.read_mem_u16(addr);
+                return operand.wrapping_add(self.registers.y as u16)
+            }
+            Modes::ZeroPage => self.read_mem(addr) as u16,
+
+            Modes::ZeroPageX => { 
+                let operand = self.read_mem(addr);
+                return operand.wrapping_add(self.registers.y) as u16
+            }
+            Modes::ZeroPageY => {
+                let operand = self.read_mem(addr);
+                return operand.wrapping_add(self.registers.x) as u16 
+            }
+            Modes::IndirectX => {
+                let operand = self.read_mem(addr); // Get u8 byte from memory
+                let index: u8 = operand.wrapping_add(self.registers.x); // Since read_mem returns u8, cast index as u8 and add register X to operand
+                let lo = self.read_mem(index as u16); // lo bit is read from memory at index location
+                let hi = self.read_mem(index.wrapping_add(1) as u16); // hi bit is read from the index + 1 location
+                (hi as u16) << 8 | lo as u16 // return as BIG ENDIAN
+            }
+            Modes::IndirectY => {
+                let index = self.read_mem(addr);
+                let lo = self.read_mem(index as u16);
+                let hi = self.read_mem((index as u8).wrapping_add(1) as u16);
+                let base = (hi as u16) << 8 | lo as u16;
+                return base.wrapping_add(self.registers.y as u16)
+            }
+
+            _ => panic!("Error Matching mode")
+        }
+    }
 
     pub fn zero_neg_flags(&mut self, result: u8) {
         if result == 0 {
