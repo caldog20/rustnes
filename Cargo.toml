@@ -1,8 +1,9 @@
 [package]
 name = "rustnes"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Caleb Yates <caldog20@gmail.com>"]
 edition = "2018"
+repository = "https://github.com/caldog20/rustnes.git"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
