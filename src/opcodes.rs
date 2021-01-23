@@ -1,6 +1,9 @@
+// TODO: Add cycle counts to hashmap
+
 
 use crate::cpu::Modes;
 use std::collections::HashMap;
+
 
 lazy_static! {
     pub static ref OPCODES: HashMap<u8, Modes> = {
