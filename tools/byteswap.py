@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import argparse as ap 
 
 # Function to take value and convert it to Little Endian byte order
