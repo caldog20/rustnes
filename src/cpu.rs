@@ -1,11 +1,10 @@
+//TODO: Clean up matches, figure out cycles, fix program counter increments in gen purpose function.
 
 #![allow(dead_code)]
 use crate::instructions::*;
 use crate::bus::BUS;
 use crate::opcodes::OPCODES;
 
-// const STACK: u16 = 0x0100;
-// const STACK_RESET: u8 = 0xFD;
 
 bitflags! {
     pub struct Flags: u8{
@@ -14,7 +13,7 @@ bitflags! {
     const I = 0b00000100;
     const D = 0b00001000;
     const B = 0b00010000;
-    const U = 0b00000000;
+    const U = 0b00100000;
     const V = 0b01000000;
     const N = 0b10000000;
     const O = 0b00000000;
@@ -189,23 +188,37 @@ impl CPU {
     pub fn zero_neg_flags(&mut self, result: u8) {
         if result == 0 {
             self.status.insert(Flags::Z);
+            println!("SET ZERO FLAG");
         } else {
             self.status.remove(Flags::Z);
+            println!("UNSET ZERO FLAG");
         }
-        if result & 0b1000_0000 != 0 {
-            self.status.insert(Flags::N)
+        if result >> 7 == 1 {
+            self.update_negative_flag(true);
+            println!("SET NEG FLAG");
         } else {
-            self.status.remove(Flags::N)
+            self.update_negative_flag(false);
+            println!("UNSET NEG FLAG");
         }
     }
-    
+    pub fn update_negative_flag(&mut self, set: bool) {
+        match set {
+            true => self.status.insert(Flags::N),
+            false => self.status.remove(Flags::N),
+        }
+    }
     pub fn update_carry_flag(&mut self, set: bool) {
         match set {
-            true => self.status.remove(Flags::C),
-            false => self.status.insert(Flags::C)
+            true => self.status.insert(Flags::C),
+            false => self.status.remove(Flags::C),
         }
     }
-
+    pub fn update_overflow_flag(&mut self, set: bool) {
+        match set {
+            true => self.status.insert(Flags::V),
+            false => self.status.remove(Flags::V),
+        }
+    }
     pub fn decode(&mut self) {
         // self.pc = 0;
         loop {
@@ -219,8 +232,8 @@ impl CPU {
                     return;
                 }
                 0x01 => {
-                    print!("Terminated for testing");
-                    return;
+                    println!("Skip for testing");
+                    self.registers.pc += 2;
                 }
                 0xA9 => {
                     println!("the mode for A9 is {:?}", &mode);
@@ -234,6 +247,17 @@ impl CPU {
                 }
                 0xAA => {
                     tax(self);
+                    self.registers.pc += 1;
+                }
+                0x69 => {
+                    println!("the mode for 69 is {:?}", &mode);
+                    adc(self, &mode);
+                    self.registers.pc += 1;
+                }
+                0x6D => {
+                    println!("the mode for 6D is {:?}", &mode); 
+                    adc(self, &mode);
+                    self.registers.pc += 2;
                 }
                 0xC4 => {
                     println!("the mode for C4 is {:?}", &mode)
@@ -313,5 +337,37 @@ mod test {
         cpu.load_rom(testrom);
         cpu.reset();
         cpu.decode();
+    }
+    #[test]
+    fn test_add_carry_immediate() {
+        let mut cpu = CPU::new();
+        let testrom = vec![0xA9, 0x01, 0x69, 0xFA, 0x00];
+        cpu.load_rom(testrom);
+        cpu.reset();
+        cpu.decode();
+        println!("{:?}", cpu.status);
+    }
+    #[test]
+    fn test_add_carry_absolute() {
+        let mut cpu = CPU::new();
+        let testrom = vec![0xA9, 0xF1, 0x6D, 0x06, 0x06, 0x01, 0xFF, 0x00];
+        cpu.load_rom(testrom);
+        cpu.reset();
+        cpu.decode();
+        assert!(cpu.status & Flags::N == Flags::N);
+        assert!(cpu.status & Flags::C == Flags::C);
+    }
+    #[test]
+    fn test_add_carry_overflow() {
+        let mut cpu = CPU::new();
+        // let testrom = vec![0xA9, 0x40, 0x69, 0x40, 0x01, 0x00];
+        let testrom = vec![0xA9, 0xC0, 0x69, 0x80, 0x01, 0x00];
+        cpu.load_rom(testrom);
+        cpu.reset();
+        // cpu.status = Flags::C; // Toggle Carry flag for testing operations the carry flag set by previous operation
+        cpu.decode();
+        assert!(cpu.status & Flags::C == Flags::C);
+        assert!(cpu.status & Flags::V == Flags::V);
+        println!("{:?}", cpu.status); // Check flags after ADC
     }
 }
