@@ -3,3 +3,4 @@
 #*.asm
 #refs
 test.rs
+*.lock
