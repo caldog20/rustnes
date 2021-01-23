@@ -138,14 +138,14 @@ impl CPU {
         self.decode();
     }
 
-    pub fn addr_from_mode(self, mode: &Modes) -> u16 {
+    pub fn get_address(self, mode: &Modes) -> u16 {
         match mode {
             Modes::Immediate => self.registers.pc,
-            _ => self.get_address(mode, self.registers.pc)
+            _ => self.get_addr_mode(mode, self.registers.pc)
         }
     }
 
-    pub fn get_address(&self, mode: &Modes, addr: u16) -> u16 {
+    pub fn get_addr_mode(&self, mode: &Modes, addr: u16) -> u16 {
         match mode {
             Modes::Absolute => self.read_mem_u16(addr),
 
