@@ -138,7 +138,7 @@ impl CPU {
         self.decode();
     }
 
-    pub fn get_address(self, mode: &Modes) -> u16 {
+    pub fn get_address(&self, mode: &Modes) -> u16 {
         match mode {
             Modes::Immediate => self.registers.pc,
             _ => self.get_addr_mode(mode, self.registers.pc)
@@ -209,19 +209,28 @@ impl CPU {
     pub fn decode(&mut self) {
         // self.pc = 0;
         loop {
-            let opcode = self.read_mem(self.registers.pc);
-            self.registers.pc += 1;
+            let opcode = self.read_mem(self.registers.pc); // Get Opcode from memory at current program counter location
+            self.registers.pc += 1; // increment program counter to next address for instructions
             print!("OPCODE: {:#04X}\n", opcode);
             let mode = OPCODES.get(&opcode).unwrap();
             match opcode {
-                0x00 => return,
+                0x00 => {
+                    println!("BRK");
+                    return;
+                }
                 0x01 => {
-                    print!("Terminated");
+                    print!("Terminated for testing");
                     return;
                 }
                 0xA9 => {
-                    let param = self.read_mem(self.registers.pc);
-                    lda(self, param);
+                    println!("the mode for A9 is {:?}", &mode);
+                    lda(self, &mode);
+                    self.registers.pc += 1; // Immediate mode uses a 1byte address, increment program counter to next opcode
+                }
+                0xAD => {
+                    println!("the mode for AD is {:?}", &mode); 
+                    lda(self, &mode);
+                    self.registers.pc += 2; // Absolute mode uses a 2 byte address, so increment program counter twice to skip second value of 2byte address for next opcode
                 }
                 0xAA => {
                     tax(self);
@@ -293,6 +302,14 @@ mod test {
     fn test_hashmap() {
         let mut cpu = CPU::new();
         let testrom = vec![0xc4, 0x00, 0x01];
+        cpu.load_rom(testrom);
+        cpu.reset();
+        cpu.decode();
+    }
+    #[test]
+    fn test_get_address() {
+        let mut cpu = CPU::new();
+        let testrom = vec![0xa9, 0x05, 0xad, 0xCC, 0xD1, 0x01];
         cpu.load_rom(testrom);
         cpu.reset();
         cpu.decode();
