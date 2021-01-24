@@ -235,33 +235,52 @@ impl CPU {
                     println!("Skip for testing");
                     self.registers.pc += 2;
                 }
-                0xA9 => {
-                    println!("the mode for A9 is {:?}", &mode);
-                    lda(self, &mode);
-                    self.registers.pc += 1; // Immediate mode uses a 1byte address, increment program counter to next opcode
-                }
-                0xAD => {
+                // LDA 
+                0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
                     println!("the mode for AD is {:?}", &mode); 
                     lda(self, &mode);
-                    self.registers.pc += 2; // Absolute mode uses a 2 byte address, so increment program counter twice to skip second value of 2byte address for next opcode
+                    match opcode {
+                        0xAD | 0xBD | 0xB9 => self.registers.pc += 2, // Absolute mode uses a 2 byte address, so increment program counter twice to skip second value of 2byte address for next opcode
+                        _ => self.registers.pc += 1
+                    }
                 }
+                // TAX 
                 0xAA => {
                     tax(self);
                     self.registers.pc += 1;
                 }
-                0x69 => {
+                // ADC
+                0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
                     println!("the mode for 69 is {:?}", &mode);
                     adc(self, &mode);
-                    self.registers.pc += 1;
+                    match opcode {
+                        0x6D | 0x7D | 0x79 => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
                 }
-                0x6D => {
-                    println!("the mode for 6D is {:?}", &mode); 
-                    adc(self, &mode);
-                    self.registers.pc += 2;
+                // SBC
+                0xE9 | 0xE5 | 0xF5 | 0xED | 0xFD | 0xF9 | 0xE1 | 0xF1 => {
+                    sbc(self, &mode);
+                    match opcode {
+                        0xED | 0xFD | 0xF9 => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
+                }
+                // ASL_ACC
+                0x0A => asl_acc(self),
+                // ASL
+                0x06 | 0x16 | 0x0E | 0x1E => {
+                    asl(self, &mode);
+                    match opcode {
+                        0x0E | 0x1E => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
                 }
                 0xC4 => {
                     println!("the mode for C4 is {:?}", &mode)
                 }
+                
+
                 _ => panic!("NO OPCODE")
             }
         }
@@ -271,6 +290,15 @@ impl CPU {
 #[cfg(test)]
 mod test {
     use super::*;
+    
+    #[test]
+    fn test_reset_flags() {
+        let mut cpu = CPU::new();
+        cpu.load_rom(vec![0xa9, 0x05, 0x00]);
+        cpu.reset();
+        assert!(cpu.status.contains(Flags::I));
+        assert!(cpu.status.contains(Flags::U));
+    }
     #[test]
     fn test_lda_a9() {
         // let bus = BUS::new();
@@ -279,8 +307,8 @@ mod test {
         cpu.reset();
         cpu.decode();
         assert_eq!(cpu.registers.a, 0x05);
-        assert!(cpu.status & Flags::Z == Flags::U);
-        assert!(cpu.status & Flags::N == Flags::U);
+        assert!(cpu.status & Flags::Z == Flags::O);
+        assert!(cpu.status & Flags::N == Flags::O);
     }
     #[test]
     fn test_lda_a9_zero() {
