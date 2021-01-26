@@ -181,16 +181,16 @@ impl CPU {
                 return base.wrapping_add(self.registers.y as u16)
             }
 
-            _ => panic!("Error Matching mode")
+            _ => panic!("Mode not supported: {:?}", mode)
         }
     }
 
     pub fn zero_neg_flags(&mut self, result: u8) {
         if result == 0 {
-            self.status.insert(Flags::Z);
+            self.update_zero_flag(true);
             println!("SET ZERO FLAG");
         } else {
-            self.status.remove(Flags::Z);
+            self.update_zero_flag(false);
             println!("UNSET ZERO FLAG");
         }
         if result >> 7 == 1 {
@@ -199,6 +199,12 @@ impl CPU {
         } else {
             self.update_negative_flag(false);
             println!("UNSET NEG FLAG");
+        }
+    }
+    pub fn update_zero_flag(&mut self, set: bool) {
+        match set {
+            true => self.status.insert(Flags::Z),
+            false => self.status.remove(Flags::Z),
         }
     }
     pub fn update_negative_flag(&mut self, set: bool) {
@@ -235,9 +241,25 @@ impl CPU {
                     println!("Skip for testing");
                     self.registers.pc += 2;
                 }
+                // BIT
+                0x24 | 0x2C => {
+                    bits(self, &mode);
+                    if opcode == 0x2C {
+                        self.registers.pc += 2;
+                    } else {
+                        self.registers.pc += 1;
+                    }
+                }
+                // AND
+                0x29 | 0x25 | 0x35 | 0x2D | 0x3D | 0x39 | 0x21 | 0x31 => {
+                    and(self, &mode);
+                    match opcode {
+                        0x2D | 0x3D | 0x39 => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
+                }
                 // LDA 
                 0xA9 | 0xA5 | 0xB5 | 0xAD | 0xBD | 0xB9 | 0xA1 | 0xB1 => {
-                    println!("the mode for AD is {:?}", &mode); 
                     lda(self, &mode);
                     match opcode {
                         0xAD | 0xBD | 0xB9 => self.registers.pc += 2, // Absolute mode uses a 2 byte address, so increment program counter twice to skip second value of 2byte address for next opcode
@@ -251,7 +273,6 @@ impl CPU {
                 }
                 // ADC
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
-                    println!("the mode for 69 is {:?}", &mode);
                     adc(self, &mode);
                     match opcode {
                         0x6D | 0x7D | 0x79 => self.registers.pc += 2,
@@ -276,12 +297,35 @@ impl CPU {
                         _ => self.registers.pc += 1
                     }
                 }
-                0xC4 => {
-                    println!("the mode for C4 is {:?}", &mode)
+                // CMP
+                0xC9 | 0xC5 | 0xD5 | 0xCD | 0xDD | 0xD9 | 0xC1 | 0xD1 {
+                    compare(self, &mode, self.registers.a);
+                    match opcode {
+                        0xCD | 0xDD | 0xD9 => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
                 }
-                
+                // CMP X
+                0xE0 | 0xE4 | 0xEC => {
+                    compare(self, &mode, self.registers.x);
+                    if opcode == 0xEC {
+                        self.registers.pc += 2;
+                    } else {
+                        self.registers.pc += 1;
+                    }
+                }
+                // CMP Y
+                0xC0 | 0xC4 | 0xCC {
+                    compare(self, &mode, self.registers.y);
+                    if opcode == 0xCC {
+                        self.registers.pc += 2;
+                    } else {
+                        self.registers.pc += 1;
+                    }
+                }
+               
 
-                _ => panic!("NO OPCODE")
+                _ => panic!("NO OPCODE MATCH")
             }
         }
     }
