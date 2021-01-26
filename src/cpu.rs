@@ -298,7 +298,7 @@ impl CPU {
                     }
                 }
                 // CMP
-                0xC9 | 0xC5 | 0xD5 | 0xCD | 0xDD | 0xD9 | 0xC1 | 0xD1 {
+                0xC9 | 0xC5 | 0xD5 | 0xCD | 0xDD | 0xD9 | 0xC1 | 0xD1 => {
                     compare(self, &mode, self.registers.a);
                     match opcode {
                         0xCD | 0xDD | 0xD9 => self.registers.pc += 2,
@@ -315,7 +315,7 @@ impl CPU {
                     }
                 }
                 // CMP Y
-                0xC0 | 0xC4 | 0xCC {
+                0xC0 | 0xC4 | 0xCC => {
                     compare(self, &mode, self.registers.y);
                     if opcode == 0xCC {
                         self.registers.pc += 2;
