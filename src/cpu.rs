@@ -225,6 +225,55 @@ impl CPU {
             false => self.status.remove(Flags::V),
         }
     }
+    // STACK OPERATIONS
+    // POP 
+    pub fn pop(&mut self) -> u8 {
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        self.read_mem(0x100 as u16) + self.registers.sp
+    }
+    // PUSH
+    pub fn push(&mut self, value: u8) {
+        self.write_mem((0x100 as u16) + self.registers.sp as u16, value);
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+    }
+    // POP U16
+    pub fn pop_u16(&mut self) -> u16 {
+        let lo = self.pop() as u16;
+        let hi = self.pop() as u16;
+        hi << 8 | lo
+    }
+    // PUSH U16
+    pub fn push_u16(&mut self, value: u16) {
+        let lo = (value & 0xFF) as u8;
+        let hi = (value >> 8) as u8;
+        self.push(hi);
+        self.push(lo);
+    }
+    // PLA
+    pub fn pla(&mut self) {
+        let value = self.pop();
+        set_register_a(self, value);
+    }
+    // PHA
+    pub fn pha(&mut self) {
+        self.push(self.registers.a);
+    }
+    // PLP
+    pub fn plp(&mut self) {
+        self.status.bits = self.pop();
+        self.status.remove(Flags::B);
+    }
+    // PHP
+    pub fn php(&mut self) {
+        let mut flags = self.status.clone();
+        flags.insert(Flags::B);
+        self.push(flags.bits());
+    }
+
+
+
+
+
     pub fn decode(&mut self) {
         // self.pc = 0;
         loop {
@@ -266,10 +315,44 @@ impl CPU {
                         _ => self.registers.pc += 1
                     }
                 }
+                // LDX
+                0xA2 | 0xA6 | 0xB6 | 0xAE | 0xBE => {
+                    ldx(self, &mode);
+                    match opcode {
+                        0xAE | 0xBE => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
+                }
+                // LDY
+                0xA0 | 0xA4 | 0xB4 | 0xAC | 0xBC => {
+                    ldy(self, &mode);
+                    match opcode {
+                        0xAC | 0xBC => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
+                }
                 // TAX 
                 0xAA => {
                     tax(self);
                     self.registers.pc += 1;
+                }
+                // DEC X
+                0xCA => {
+                    dec_x(self);
+                    self.registers.pc += 1;
+                }
+                // DEC Y
+                0x88 => {
+                    dec_y(self);
+                    self.registers.pc += 1;
+                }
+                // DEC
+                0xC6 | 0xD6 | 0xCE | 0xDE => {
+                    dec(self, &mode);
+                    match opcode {
+                        0xCE | 0xDE => self.registers.pc += 2,
+                        _ => self.registers.pc += 1
+                    }
                 }
                 // ADC
                 0x69 | 0x65 | 0x75 | 0x6D | 0x7D | 0x79 | 0x61 | 0x71 => {
